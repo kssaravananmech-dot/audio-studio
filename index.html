@@ -1,0 +1,240 @@
+
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audio Studio</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #101827;
+      color: white;
+    }
+
+    header {
+      background: #172b46;
+      padding: 25px;
+      text-align: center;
+      border-bottom: 2px solid #16b8c4;
+    }
+
+    header h1 {
+      margin: 0;
+      color: #36d6df;
+      font-size: 30px;
+    }
+
+    header p { color: #c5d3e3; }
+
+    .container {
+      max-width: 850px;
+      margin: 35px auto;
+      padding: 20px;
+    }
+
+    .panel {
+      background: #1b2a40;
+      padding: 25px;
+      border-radius: 14px;
+      margin-bottom: 22px;
+      border: 1px solid #34465e;
+    }
+
+    h2 { color: #36d6df; }
+
+    .upload {
+      border: 2px dashed #36d6df;
+      border-radius: 12px;
+      padding: 25px 15px;
+      text-align: center;
+      background: #14243a;
+    }
+
+    button {
+      background: #13aeb9;
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      margin: 5px;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .note { color: #aabbd0; font-size: 13px; }
+
+    audio {
+      width: 100%;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>Audio Studio</h1>
+  <p>AI Powered Audio Production</p>
+</header>
+
+<div class="container">
+
+  <div class="panel">
+    <h2>🎙️ Voice Recording</h2>
+
+    <div class="upload">
+      <h3>Upload Your Tamil Voice Recording</h3>
+      <p class="note">Select your MP3 or WAV audio file</p>
+      <input type="file" id="audioUpload" accept="audio/*">
+    </div>
+
+    <div style="text-align:center; margin-top:25px;">
+      <h3>OR Record Your Voice</h3>
+
+      <button id="recordBtn">🔴 Record</button>
+      <button id="pauseBtn" disabled>⏸ Pause</button>
+      <button id="resumeBtn" disabled>▶ Resume</button>
+      <button id="stopBtn" disabled>⏹ Stop</button>
+
+      <p id="recordStatus" class="note">Ready to record</p>
+    </div>
+
+    <div style="margin-top:25px;">
+      <h3>🎧 Audio Preview</h3>
+      <audio id="audioPreview" controls></audio>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>🎵 Background Music</h2>
+    <p>Select suitable background music for your voice.</p>
+    <p class="note">Music library will be added in the next stages.</p>
+  </div>
+
+  <div class="panel">
+    <h2>🔊 Sound Effects</h2>
+    <p>Add suitable sound effects to your audio.</p>
+    <p class="note">Automatic and manual sound effects will be added.</p>
+  </div>
+
+  <div class="panel">
+    <h2>🎧 Final Audio</h2>
+    <p>Preview and export your finished audio.</p>
+    <button disabled>Export MP3 – Coming Soon</button>
+  </div>
+
+</div>
+
+<script>
+let mediaRecorder;
+let audioChunks = [];
+let currentStream;
+
+const recordBtn = document.getElementById("recordBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const resumeBtn = document.getElementById("resumeBtn");
+const stopBtn = document.getElementById("stopBtn");
+const recordStatus = document.getElementById("recordStatus");
+const audioPreview = document.getElementById("audioPreview");
+
+recordBtn.addEventListener("click", startRecording);
+pauseBtn.addEventListener("click", pauseRecording);
+resumeBtn.addEventListener("click", resumeRecording);
+stopBtn.addEventListener("click", stopRecording);
+
+async function startRecording() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("Microphone access is not supported by this browser.");
+    }
+
+    currentStream = await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(currentStream);
+
+    mediaRecorder.ondataavailable = function(event) {
+      if (event.data.size > 0) {
+        audioChunks.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = function() {
+      const audioBlob = new Blob(audioChunks, {
+        type: mediaRecorder.mimeType
+      });
+
+      const audioURL = URL.createObjectURL(audioBlob);
+      audioPreview.src = audioURL;
+
+      recordStatus.textContent = "Recording completed. Play your audio.";
+
+      currentStream.getTracks().forEach(track => track.stop());
+    };
+
+    mediaRecorder.start();
+
+    recordBtn.disabled = true;
+    pauseBtn.disabled = false;
+    stopBtn.disabled = false;
+    recordStatus.textContent = "Recording...";
+
+  } catch (error) {
+    recordStatus.textContent = error.name + ": " + error.message;
+    alert("Microphone error: " + error.message);
+  }
+}
+
+function pauseRecording() {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.pause();
+    pauseBtn.disabled = true;
+    resumeBtn.disabled = false;
+    recordStatus.textContent = "Recording paused";
+  }
+}
+
+function resumeRecording() {
+  if (mediaRecorder && mediaRecorder.state === "paused") {
+    mediaRecorder.resume();
+    pauseBtn.disabled = false;
+    resumeBtn.disabled = true;
+    recordStatus.textContent = "Recording...";
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+
+    recordBtn.disabled = false;
+    pauseBtn.disabled = true;
+    resumeBtn.disabled = true;
+    stopBtn.disabled = true;
+  }
+}
+
+document.getElementById("audioUpload").addEventListener("change", function(event) {
+  const file = event.target.files[0];
+
+  if (file) {
+    audioPreview.src = URL.createObjectURL(file);
+    recordStatus.textContent = "Uploaded: " + file.name;
+  }
+});
+</script>
+
+</body>
+</html>

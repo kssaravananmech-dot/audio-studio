@@ -116,10 +116,19 @@
   </div>
 
   <div class="panel">
-    <h2>🎵 Background Music</h2>
-    <p>Select suitable background music for your voice.</p>
-    <p class="note">Music library will be added in the next stages.</p>
+  <h2>🎵 Background Music</h2>
+
+  <div class="upload">
+    <h3>Upload Background Music</h3>
+    <p class="note">Select MP3 or WAV music file</p>
+    <input type="file" id="bgmUpload" accept="audio/*">
   </div>
+
+  <div style="margin-top:20px;">
+    <h3>🎧 BGM Preview</h3>
+    <audio id="bgmPreview" controls></audio>
+  </div>
+</div>
 
   <div class="panel">
     <h2>🔊 Sound Effects</h2>
@@ -232,6 +241,15 @@ document.getElementById("audioUpload").addEventListener("change", function(event
   if (file) {
     audioPreview.src = URL.createObjectURL(file);
     recordStatus.textContent = "Uploaded: " + file.name;
+  }
+});
+  document.getElementById("bgmUpload").addEventListener("change", function(event) {
+  const file = event.target.files[0];
+
+  if (file) {
+    const bgmPreview = document.getElementById("bgmPreview");
+    bgmPreview.src = URL.createObjectURL(file);
+    bgmPreview.load();
   }
 });
 </script>

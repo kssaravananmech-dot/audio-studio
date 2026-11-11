@@ -90,13 +90,21 @@
 <div class="container">
 
   <div class="panel">
-    <h2>🎙️ Voice Recording</h2>
+  <h2>🎧 Final Audio Mixing</h2>
 
-    <div class="upload">
-      <h3>Upload Your Tamil Voice Recording</h3>
-      <p class="note">Select your MP3 or WAV audio file</p>
-      <input type="file" id="audioUpload" accept="audio/*">
-    </div>
+  <p>Combine your voice recording with background music.</p>
+
+  <button id="mixBtn">🎵 Mix Voice + BGM</button>
+
+  <div style="margin-top:20px;">
+    <h3>🎧 Mixed Audio Preview</h3>
+    <audio id="mixedPreview" controls></audio>
+  </div>
+
+  <button id="exportBtn" disabled>Export MP3 – Coming Soon</button>
+
+  <p class="note" id="mixStatus">Ready to mix audio.</p>
+</div>
 
     <div style="text-align:center; margin-top:25px;">
       <h3>OR Record Your Voice</h3>
@@ -275,6 +283,104 @@ bgmVolume.addEventListener("input", function() {
 });
 
 bgmPreview.volume = 0.5;
+  let mixedAudioURL = null;
+
+document.getElementById("mixBtn").addEventListener("click", async function() {
+  const voiceFile = document.getElementById("audioUpload").files[0];
+  const bgmFile = document.getElementById("bgmUpload").files[0];
+  const status = document.getElementById("mixStatus");
+  const preview = document.getElementById("mixedPreview");
+
+  if (!voiceFile) {
+    alert("Please upload a voice recording first.");
+    return;
+  }
+
+  if (!bgmFile) {
+    alert("Please upload background music first.");
+    return;
+  }
+
+  status.textContent = "Mixing audio...";
+
+  try {
+    const context = new AudioContext();
+
+    const voiceBuffer = await context.decodeAudioData(
+      await voiceFile.arrayBuffer()
+    );
+
+    const bgmBuffer = await context.decodeAudioData(
+      await bgmFile.arrayBuffer()
+    );
+
+    const duration = voiceBuffer.duration;
+    const sampleRate = context.sampleRate;
+    const length = Math.ceil(duration * sampleRate);
+
+    const voiceSource = context.createBufferSource();
+    const bgmSource = context.createBufferSource();
+
+    voiceSource.buffer = voiceBuffer;
+    bgmSource.buffer = bgmBuffer;
+    bgmSource.loop = true;
+
+    const voiceGain = context.createGain();
+    const bgmGain = context.createGain();
+
+    voiceGain.gain.value = 1;
+    bgmGain.gain.value = Number(
+      document.getElementById("bgmVolume").value
+    ) / 100;
+
+    const destination = context.createMediaStreamDestination();
+
+    voiceSource.connect(voiceGain);
+    bgmSource.connect(bgmGain);
+
+    voiceGain.connect(destination);
+    bgmGain.connect(destination);
+
+    const recorder = new MediaRecorder(destination.stream);
+    const chunks = [];
+
+    recorder.ondataavailable = event => {
+      if (event.data.size > 0) chunks.push(event.data);
+    };
+
+    const finished = new Promise(resolve => {
+      recorder.onstop = resolve;
+    });
+
+    recorder.start();
+    voiceSource.start();
+    bgmSource.start();
+
+    setTimeout(() => {
+      voiceSource.stop();
+      bgmSource.stop();
+      recorder.stop();
+    }, duration * 1000);
+
+    await finished;
+
+    const blob = new Blob(chunks, {
+      type: recorder.mimeType
+    });
+
+    if (mixedAudioURL) URL.revokeObjectURL(mixedAudioURL);
+
+    mixedAudioURL = URL.createObjectURL(blob);
+    preview.src = mixedAudioURL;
+
+    status.textContent = "Voice and BGM mixed successfully!";
+
+    await context.close();
+
+  } catch (error) {
+    status.textContent = "Mixing failed: " + error.message;
+  }
+});
 </script>
 
 </body>

@@ -127,6 +127,17 @@
   <div style="margin-top:20px;">
     <h3>🎧 BGM Preview</h3>
     <audio id="bgmPreview" controls></audio>
+    <div style="margin-top:20px;">
+  <label for="bgmVolume">BGM Volume: <span id="bgmVolumeValue">50%</span></label>
+  <input
+    type="range"
+    id="bgmVolume"
+    min="0"
+    max="100"
+    value="50"
+    style="width:100%; margin-top:12px;"
+  >
+</div>
   </div>
 </div>
 
@@ -252,6 +263,18 @@ document.getElementById("audioUpload").addEventListener("change", function(event
     bgmPreview.load();
   }
 });
+  const bgmVolume = document.getElementById("bgmVolume");
+const bgmVolumeValue = document.getElementById("bgmVolumeValue");
+const bgmPreview = document.getElementById("bgmPreview");
+
+bgmVolume.addEventListener("input", function() {
+  const volume = Number(bgmVolume.value);
+
+  bgmPreview.volume = volume / 100;
+  bgmVolumeValue.textContent = volume + "%";
+});
+
+bgmPreview.volume = 0.5;
 </script>
 
 </body>
